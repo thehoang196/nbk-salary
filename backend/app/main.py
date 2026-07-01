@@ -77,14 +77,40 @@ def on_startup():
 @app.get("/api/debug/check-admin")
 def debug_check_admin():
     """Temporary debug endpoint - remove after fixing login."""
-    from app.database import SessionLocal
-    from app.models.user import User
+    from app.database import SessionLocal, engine, Base
+    from app.models.user import User, UserRole
     from app.utils.auth import verify_password
+    from passlib.context import CryptContext
+
+    # Force create tables
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        return {"error": f"create_all failed: {str(e)}"}
+
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == "admin").first()
         if not user:
-            return {"error": "admin user not found"}
+            # Create admin right now
+            try:
+                user = User(
+                    username="admin",
+                    password_hash=pwd_ctx.hash("Admin123"),
+                    full_name="Quản trị viên",
+                    role=UserRole.admin,
+                    is_active=True,
+                    failed_login_count=0,
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                return {"message": "admin created now", "password_verify": True}
+            except Exception as e:
+                db.rollback()
+                return {"error": f"create failed: {str(e)}"}
+
         pw_ok = verify_password("Admin123", user.password_hash)
         return {
             "username": user.username,
