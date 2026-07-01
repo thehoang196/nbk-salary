@@ -20,4 +20,4 @@ COPY --from=frontend-build /frontend/build ./build
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head 2>/dev/null; python -m app.seed 2>/dev/null; uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head || true; python -m app.seed || true; uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

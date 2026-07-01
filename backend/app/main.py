@@ -31,6 +31,30 @@ async def health_check():
     return {"status": "ok", "app": "NBK Salary API"}
 
 
+@app.get("/api/debug/check-admin")
+def debug_check_admin():
+    """Temporary debug endpoint - remove after fixing login."""
+    from app.database import SessionLocal
+    from app.models.user import User
+    from app.utils.auth import verify_password
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == "admin").first()
+        if not user:
+            return {"error": "admin user not found"}
+        pw_ok = verify_password("Admin123", user.password_hash)
+        return {
+            "username": user.username,
+            "is_active": user.is_active,
+            "locked_until": str(user.locked_until) if user.locked_until else None,
+            "failed_count": user.failed_login_count,
+            "password_verify": pw_ok,
+            "hash_prefix": user.password_hash[:20] if user.password_hash else None,
+        }
+    finally:
+        db.close()
+
+
 # =============================================================================
 # Router includes
 # Uncomment each router as it is implemented
