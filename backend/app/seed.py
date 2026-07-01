@@ -27,10 +27,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def seed_admin(db: Session) -> None:
-    """Create default admin user if not exists."""
+    """Create default admin user if not exists, or reset password if exists."""
     existing = db.query(User).filter(User.username == "admin").first()
     if existing:
-        print("  [SKIP] Admin user already exists.")
+        # Always reset password and unlock on deploy
+        existing.password_hash = pwd_context.hash("Admin123")
+        existing.failed_login_count = 0
+        existing.locked_until = None
+        existing.is_active = True
+        db.commit()
+        print("  [OK] Reset admin password and unlocked account.")
         return
 
     admin = User(
