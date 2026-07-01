@@ -35,10 +35,43 @@ async def health_check():
 def on_startup():
     """Run seed on app startup to ensure admin user exists."""
     try:
-        from app.seed import run_seed
-        run_seed()
+        from app.database import SessionLocal, engine, Base
+        from app.models.user import User, UserRole
+        from passlib.context import CryptContext
+
+        # Ensure all tables exist
+        Base.metadata.create_all(bind=engine)
+
+        pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        db = SessionLocal()
+        try:
+            existing = db.query(User).filter(User.username == "admin").first()
+            if existing:
+                existing.password_hash = pwd_ctx.hash("Admin123")
+                existing.failed_login_count = 0
+                existing.locked_until = None
+                existing.is_active = True
+                db.commit()
+                print("[STARTUP] Admin password reset OK")
+            else:
+                admin = User(
+                    username="admin",
+                    password_hash=pwd_ctx.hash("Admin123"),
+                    full_name="Quản trị viên",
+                    role=UserRole.admin,
+                    is_active=True,
+                    failed_login_count=0,
+                )
+                db.add(admin)
+                db.commit()
+                print("[STARTUP] Admin user created OK")
+        except Exception as e:
+            db.rollback()
+            print(f"[STARTUP] Seed error: {e}")
+        finally:
+            db.close()
     except Exception as e:
-        print(f"[WARN] Seed failed: {e}")
+        print(f"[STARTUP] Fatal seed error: {e}")
 
 
 @app.get("/api/debug/check-admin")
