@@ -4,7 +4,7 @@ import {
   Table, Button, Space, DatePicker, message, Modal, Tag, Typography, Card, Statistic, Row, Col,
 } from 'antd';
 import {
-  UploadOutlined, DownloadOutlined, FileSearchOutlined,
+  UploadOutlined, FileSearchOutlined,
   HistoryOutlined, BarChartOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -70,16 +70,170 @@ export default function ThoiKhoaBieu() {
     }
   };
 
-  // Handle import confirm — this is called by ImportExcel component
+  // Handle import confirm — parse the school's TKB Excel format
   const handleImportConfirm = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('thang', thang);
-    formData.append('nam', nam);
+    const XLSX = await import('xlsx');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
+    // Parse all sheets - each sheet is a grade (Khối 6, 7, 8, 9)
+    const allRows = [];
+    const parseErrors = [];
+
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      // Detect which Khối this sheet belongs to
+      let khoiName = '';
+      const khoiMatch = sheetName.match(/[Kk]h[oố]i\s*(\d+)/i) ||
+        rawData.slice(0, 5).flatMap(r => r.join(' ').match(/[Kk]h[oố]i\s*(\d+)/i) || []).filter(Boolean);
+      
+      // Try to find khoi from sheet name or header rows
+      for (let i = 0; i < Math.min(5, rawData.length); i++) {
+        const rowText = rawData[i].join(' ');
+        const match = rowText.match(/KHỐI\s*(\d+)/i) || rowText.match(/Kh[oố]i\s*(\d+)/i);
+        if (match) {
+          khoiName = `Khối ${match[1]}`;
+          break;
+        }
+      }
+      if (!khoiName) {
+        const snMatch = sheetName.match(/(\d+)/);
+        if (snMatch) khoiName = `Khối ${snMatch[1]}`;
+      }
+      if (!khoiName) continue; // Skip sheets we can't identify
+
+      // Find the header row with "LỚP" and class names
+      let headerRowIdx = -1;
+      let classNames = [];
+      let classStartCols = []; // Column indices where each class's Môn column starts
+
+      for (let i = 0; i < Math.min(10, rawData.length); i++) {
+        const row = rawData[i];
+        const rowStr = row.join('|');
+        if (rowStr.includes('LỚP') || rowStr.includes('Lớp')) {
+          headerRowIdx = i;
+          break;
+        }
+      }
+
+      if (headerRowIdx === -1) continue;
+
+      // Find the sub-header row with "Thứ", "Tiết", "Môn", "GV"
+      let dataHeaderIdx = -1;
+      for (let i = headerRowIdx; i < Math.min(headerRowIdx + 3, rawData.length); i++) {
+        const row = rawData[i];
+        const rowStr = row.join('|').toLowerCase();
+        if (rowStr.includes('thứ') && rowStr.includes('tiết') && (rowStr.includes('môn') || rowStr.includes('gv'))) {
+          dataHeaderIdx = i;
+          break;
+        }
+      }
+
+      if (dataHeaderIdx === -1) continue;
+
+      // Extract class names from header row
+      // Format: LỚP | (empty) | classA | (empty) | classB | (empty) | ...
+      // Or: Thứ | Tiết | Môn | GV | Môn | GV | ...
+      // Classes appear at every 2 columns starting from col 2 (Môn, GV pairs)
+      const lopRow = rawData[headerRowIdx];
+      const subHeaderRow = rawData[dataHeaderIdx];
+      
+      // Find where Môn/GV columns start
+      let firstMonCol = -1;
+      for (let c = 0; c < subHeaderRow.length; c++) {
+        const cell = String(subHeaderRow[c] || '').trim().toLowerCase();
+        if (cell === 'môn' || cell === 'mon') {
+          firstMonCol = c;
+          break;
+        }
+      }
+      if (firstMonCol === -1) firstMonCol = 2; // Default: skip Thứ, Tiết
+
+      // Each class occupies 2 columns (Môn, GV)
+      for (let c = firstMonCol; c < subHeaderRow.length; c += 2) {
+        // Look for class name in the header row above at same column range
+        let className = '';
+        // Check lopRow at this column position
+        for (let searchRow = headerRowIdx; searchRow <= dataHeaderIdx; searchRow++) {
+          const r = rawData[searchRow];
+          for (let cc = c; cc <= c + 1 && cc < (r?.length || 0); cc++) {
+            const val = String(r[cc] || '').trim();
+            if (val && !['Môn', 'GV', 'Thứ', 'Tiết', 'LỚP', 'Lớp', 'môn', 'gv'].includes(val) && val.length < 15) {
+              className = val;
+            }
+          }
+        }
+        if (className) {
+          classNames.push(className);
+          classStartCols.push(c);
+        }
+      }
+
+      if (classNames.length === 0) continue;
+
+      // Parse data rows (after sub-header)
+      // Count occurrences: { "GV|Môn|Lớp": count }
+      const tietCount = {};
+      let currentThu = '';
+
+      for (let i = dataHeaderIdx + 1; i < rawData.length; i++) {
+        const row = rawData[i];
+        if (!row || row.length === 0) continue;
+
+        // Check if row has "Thứ" value in col 0
+        const thuVal = String(row[0] || '').trim();
+        if (thuVal && (thuVal.match(/^(Hai|Ba|Tư|Năm|Sáu|Bảy|CN)$/i) || thuVal.match(/^Th[ứu]/i))) {
+          currentThu = thuVal;
+        }
+
+        // For each class, read Môn and GV
+        for (let ci = 0; ci < classNames.length; ci++) {
+          const monCol = classStartCols[ci];
+          const gvCol = monCol + 1;
+          
+          const monVal = String(row[monCol] || '').trim();
+          const gvVal = String(row[gvCol] || '').trim();
+
+          // Skip empty or special rows (ÂN-NT, AN-NT, etc.)
+          if (!monVal || !gvVal) continue;
+          if (monVal.match(/^[ÂA]N\s*-?\s*NT$/i)) continue;
+
+          const key = `${gvVal}|||${monVal}|||${classNames[ci]}`;
+          tietCount[key] = (tietCount[key] || 0) + 1;
+        }
+      }
+
+      // Convert counts to rows
+      for (const [key, count] of Object.entries(tietCount)) {
+        const [gv, mon, lop] = key.split('|||');
+        allRows.push({
+          giao_vien: gv,
+          mon_hoc: mon,
+          khoi: khoiName,
+          lop: lop,
+          so_tiet: count,
+          loai_tiet: 'chinh_khoa',
+        });
+      }
+    }
+
+    if (allRows.length === 0) {
+      return {
+        imported_count: 0,
+        total_rows: 0,
+        errors: [{ row: 0, message: 'Không đọc được dữ liệu từ file. Kiểm tra lại định dạng file.' }],
+      };
+    }
+
+    // Send parsed rows to backend
     try {
-      const res = await api.post('/tkb/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const res = await api.post('/tkb/import', {
+        thang,
+        nam,
+        rows: allRows,
+        replace_existing: false,
       });
       const result = res.data;
       setImportSummary(result);
@@ -102,14 +256,11 @@ export default function ThoiKhoaBieu() {
             cancelText: 'Hủy',
             onOk: async () => {
               try {
-                const formData2 = new FormData();
-                formData2.append('file', file);
-                formData2.append('thang', thang);
-                formData2.append('nam', nam);
-                formData2.append('replace_existing', 'true');
-
-                const res2 = await api.post('/tkb/import', formData2, {
-                  headers: { 'Content-Type': 'multipart/form-data' },
+                const res2 = await api.post('/tkb/import', {
+                  thang,
+                  nam,
+                  rows: allRows,
+                  replace_existing: true,
                 });
                 const result2 = res2.data;
                 setImportSummary(result2);
@@ -129,30 +280,8 @@ export default function ThoiKhoaBieu() {
     }
   };
 
-  // Template download handler (calls API with auth token, then generates CSV)
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await api.get('/tkb/template');
-      const templateInfo = response.data;
-      const columns = templateInfo.columns.map((c) => c.name);
-      const descriptions = templateInfo.columns.map((c) => c.description);
-      const csvContent = columns.join(',') + '\n' + descriptions.join(',') + '\n';
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'mau_tkb_import.csv';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {
-      message.error('Không thể tải file mẫu');
-    }
-  };
-
-  // Template download URL (for ImportExcel component)
-  const templateUrl = `${api.defaults.baseURL}/tkb/template`;
+  // Template download URL is no longer needed - import uses actual school TKB format
+  const templateUrl = null;
 
   // Table columns
   const columns = [
@@ -254,12 +383,6 @@ export default function ThoiKhoaBieu() {
         </Col>
         <Col flex="auto" style={{ textAlign: 'right' }}>
           <Space>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadTemplate}
-            >
-              Tải mẫu import
-            </Button>
             <Button
               type="primary"
               icon={<UploadOutlined />}
