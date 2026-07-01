@@ -23,7 +23,7 @@ from app.models.user import User, UserRole
 from app.models.danh_muc import DmKhoi, DmKyHieuCong, DmDonVi, DmLoaiTietNgoai, DmLoaiHoTro
 from app.models.chuc_danh import DmChucVu, DmCapBacQL
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def seed_admin(db: Session) -> None:

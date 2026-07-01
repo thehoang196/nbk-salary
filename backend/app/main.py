@@ -42,7 +42,7 @@ def on_startup():
         # Ensure all tables exist
         Base.metadata.create_all(bind=engine)
 
-        pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
+        pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
         db = SessionLocal()
         try:
             existing = db.query(User).filter(User.username == "admin").first()
@@ -88,7 +88,7 @@ def debug_check_admin():
     except Exception as e:
         return {"error": f"create_all failed: {str(e)}"}
 
-    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == "admin").first()
