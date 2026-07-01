@@ -1,8 +1,11 @@
-import React from 'react';
-import { Tabs, InputNumber } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Tabs, InputNumber, Button, message } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import CrudTable from '../../components/CrudTable';
+import ImportExcel from '../../components/ImportExcel';
 import * as danhMucApi from '../../services/danhMucApi';
+import api from '../../services/api';
 
 const DonViTab = () => (
   <CrudTable
@@ -130,8 +133,96 @@ const MonHocTab = () => (
   />
 );
 
+const HeSoLuongTab = () => (
+  <CrudTable
+    title="Hệ số lương"
+    columns={[
+      { title: 'Bậc', dataIndex: 'bac' },
+      { title: 'Hệ số', dataIndex: 'he_so' },
+      {
+        title: 'Trạng thái',
+        dataIndex: 'is_active',
+        render: (v) => (v ? 'Hoạt động' : 'Ngưng'),
+      },
+    ]}
+    fetchFn={() => danhMucApi.getDanhMuc('he-so-luong')}
+    createFn={(d) => danhMucApi.createDanhMuc('he-so-luong', d)}
+    deleteFn={(id) => danhMucApi.deleteDanhMuc('he-so-luong', id)}
+    formFields={[
+      { name: 'bac', label: 'Bậc', rules: [{ required: true, message: 'Vui lòng nhập bậc' }] },
+      {
+        name: 'he_so',
+        label: 'Hệ số',
+        rules: [{ required: true, message: 'Vui lòng nhập hệ số' }],
+        component: <InputNumber style={{ width: '100%' }} min={0.01} max={99.99} step={0.01} />,
+      },
+    ]}
+  />
+);
+
+const DonGiaDayTab = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await danhMucApi.getDonGiaDay();
+      setData(res.data || []);
+    } catch (e) {
+      message.error('Lỗi tải đơn giá dạy');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleImportConfirm = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/don-gia-day/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    fetchData();
+    return res.data;
+  };
+
+  return (
+    <div>
+      <CrudTable
+        title="Đơn giá dạy"
+        columns={[
+          { title: 'Giáo viên', dataIndex: 'nhan_vien_id' },
+          { title: 'Môn học', dataIndex: 'mon_hoc_id' },
+          { title: 'Khối', dataIndex: 'khoi_id' },
+          { title: 'Đơn giá', dataIndex: 'don_gia', render: (v) => `${(v || 0).toLocaleString()} đ` },
+          { title: 'Ngày bắt đầu', dataIndex: 'ngay_bat_dau' },
+          {
+            title: 'Trạng thái',
+            dataIndex: 'is_active',
+            render: (v) => (v ? 'Hoạt động' : 'Ngưng'),
+          },
+        ]}
+        fetchFn={() => danhMucApi.getDonGiaDay()}
+        createFn={(d) => danhMucApi.createDonGiaDay(d)}
+        updateFn={(id, d) => danhMucApi.updateDonGiaDay(id, d)}
+        deleteFn={(id) => danhMucApi.deleteDonGiaDay(id)}
+        formFields={[
+          { name: 'nhan_vien_id', label: 'Giáo viên (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+          { name: 'mon_hoc_id', label: 'Môn học (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+          { name: 'khoi_id', label: 'Khối (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+          { name: 'don_gia', label: 'Đơn giá (VND)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+        ]}
+      />
+    </div>
+  );
+};
+
 export default function DanhMuc() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [importGVOpen, setImportGVOpen] = useState(false);
 
   const tabKeyMap = {
     'don-vi': '1',
@@ -162,9 +253,52 @@ export default function DanhMuc() {
     { key: '4', label: 'Nghiệp vụ', children: <NghiepVuTab /> },
     { key: '5', label: 'Kiêm nhiệm', children: <KiemNhiemTab /> },
     { key: '6', label: 'Môn học', children: <MonHocTab /> },
-    { key: '7', label: 'Hệ số lương', children: <div>Hệ số lương - Coming Soon</div> },
-    { key: '8', label: 'Đơn giá dạy', children: <div>Đơn giá dạy - Coming Soon</div> },
+    { key: '7', label: 'Hệ số lương', children: <HeSoLuongTab /> },
+    { key: '8', label: 'Đơn giá dạy', children: <DonGiaDayTab /> },
   ];
 
-  return <Tabs items={items} activeKey={activeKey} onChange={handleTabChange} />;
+  const handleImportGVConfirm = async (file) => {
+    const XLSX = await import('xlsx');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    // Map Excel columns to API fields - specifically for GV (teachers)
+    const rows = jsonData.map((row) => ({
+      ma_nv: String(row['Mã NV'] || row['ma_nv'] || '').trim(),
+      ho_ten: String(row['Họ tên'] || row['ho_ten'] || '').trim(),
+      nhom_nv: 'GV',
+      don_vi: String(row['Đơn vị'] || row['don_vi'] || '').trim() || null,
+      chuc_vu: String(row['Chức vụ'] || row['chuc_vu'] || '').trim() || null,
+      cap_bac_ql: String(row['Cấp bậc QL'] || row['cap_bac_ql'] || '').trim() || null,
+      ten_goi: String(row['Tên gọi'] || row['ten_goi'] || '').trim() || null,
+      email: String(row['Email'] || row['email'] || '').trim() || null,
+      sdt: String(row['SĐT'] || row['sdt'] || '').trim() || null,
+    }));
+
+    const res = await api.post('/nhan-vien/import', { rows });
+    return res.data;
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>Quản lý Giáo viên</h2>
+        <Button icon={<UploadOutlined />} onClick={() => setImportGVOpen(true)}>
+          Import giáo viên từ Excel
+        </Button>
+      </div>
+      <Tabs items={items} activeKey={activeKey} onChange={handleTabChange} />
+      <ImportExcel
+        title="Import danh sách giáo viên"
+        open={importGVOpen}
+        onClose={() => setImportGVOpen(false)}
+        onConfirm={handleImportGVConfirm}
+        accept=".xlsx,.xls"
+        maxSize={10}
+      />
+    </div>
+  );
 }

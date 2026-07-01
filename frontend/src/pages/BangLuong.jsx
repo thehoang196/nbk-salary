@@ -40,7 +40,15 @@ export default function BangLuong() {
     setLoading(true);
     try {
       const res = await api.get(`/luong/bang-luong/${thang}/${nam}`);
-      setData(res.data || []);
+      // API returns { thang, nam, items, total_count, total_thuc_linh }
+      const rawItems = res.data?.items || [];
+      // Map muc_vi_thuc_linh to thuc_linh for display
+      const mapped = rawItems.map((item) => ({
+        ...item,
+        thuc_linh: item.muc_vi_thuc_linh || 0,
+        tong_thu: item.muc_vi_thuc_linh || 0,
+      }));
+      setData(mapped);
     } catch (e) {
       if (e.response?.status !== 404) {
         message.error('Lỗi tải dữ liệu bảng lương');

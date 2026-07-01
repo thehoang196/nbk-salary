@@ -42,7 +42,7 @@ function getMenuItems(role) {
     {
       key: '/danh-muc',
       icon: <AppstoreOutlined />,
-      label: 'Danh mục',
+      label: 'Giáo viên',
       roles: ['admin', 'accountant'],
       children: [
         { key: '/danh-muc?tab=don-vi', icon: <BankOutlined />, label: 'Đơn vị' },

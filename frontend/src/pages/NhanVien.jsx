@@ -6,9 +6,10 @@ import {
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
-  SearchOutlined, EyeOutlined,
+  SearchOutlined, EyeOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
+import ImportExcel from '../components/ImportExcel';
 
 const { Option } = Select;
 
@@ -61,6 +62,9 @@ export default function NhanVien() {
     don_vi_id: undefined,
     search: '',
   });
+
+  // Import Excel state
+  const [importOpen, setImportOpen] = useState(false);
 
   // Dropdown data for selects
   const [donViList, setDonViList] = useState([]);
@@ -170,6 +174,35 @@ export default function NhanVien() {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Import Excel handler - parse Excel client-side and send JSON to backend
+  const handleImportConfirm = async (file) => {
+    const XLSX = await import('xlsx');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    // Map Excel columns to API fields
+    const rows = jsonData.map((row) => ({
+      ma_nv: String(row['Mã NV'] || row['ma_nv'] || '').trim(),
+      ho_ten: String(row['Họ tên'] || row['ho_ten'] || '').trim(),
+      nhom_nv: String(row['Nhóm NV'] || row['nhom_nv'] || 'GV').trim(),
+      don_vi: String(row['Đơn vị'] || row['don_vi'] || '').trim() || null,
+      chuc_vu: String(row['Chức vụ'] || row['chuc_vu'] || '').trim() || null,
+      cap_bac_ql: String(row['Cấp bậc QL'] || row['cap_bac_ql'] || '').trim() || null,
+      ten_goi: String(row['Tên gọi'] || row['ten_goi'] || '').trim() || null,
+      email: String(row['Email'] || row['email'] || '').trim() || null,
+      sdt: String(row['SĐT'] || row['sdt'] || '').trim() || null,
+    }));
+
+    const res = await api.post('/nhan-vien/import', { rows });
+    if (res.data.imported_count > 0) {
+      fetchEmployees();
+    }
+    return res.data;
   };
 
   // Resolve names from IDs for display
@@ -289,9 +322,14 @@ export default function NhanVien() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Quản lý nhân viên</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          Thêm nhân viên
-        </Button>
+        <Space>
+          <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
+            Import Excel
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            Thêm nhân viên
+          </Button>
+        </Space>
       </div>
 
       {/* Filters */}
@@ -462,6 +500,16 @@ export default function NhanVien() {
           </Form.Item>
         </Form>
       </Drawer>
+
+      {/* Import Excel Modal */}
+      <ImportExcel
+        title="Import danh sách nhân viên"
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onConfirm={handleImportConfirm}
+        accept=".xlsx,.xls"
+        maxSize={10}
+      />
     </div>
   );
 }

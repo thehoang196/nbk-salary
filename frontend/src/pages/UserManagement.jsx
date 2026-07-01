@@ -5,10 +5,10 @@ import api from '../services/api';
 import useAuthStore from '../store/authStore';
 
 const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'accountant', label: 'Kế toán' },
   { value: 'hr', label: 'Nhân sự' },
+  { value: 'accountant', label: 'Kế toán' },
   { value: 'teacher', label: 'Giáo viên' },
+  { value: 'admin', label: 'Admin' },
 ];
 
 const ROLE_COLORS = {
@@ -157,7 +157,7 @@ export default function UserManagement() {
           form={form}
           layout="vertical"
           onFinish={handleAddUser}
-          initialValues={{ role: 'teacher' }}
+          initialValues={{ role: 'hr' }}
         >
           <Form.Item
             name="username"

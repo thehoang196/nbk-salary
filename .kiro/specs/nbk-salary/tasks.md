@@ -679,6 +679,94 @@ Full-stack salary management for THCS Nguyễn Bỉnh Khiêm. Tasks 1-5 are comp
 - [x] 26. Final checkpoint - Full system verification
   - Ensure all tests pass, ask the user if questions arise.
 
+- [x] 27. Implement MISA HR Data Import (Requirement 15)
+  Full import support for MISA AMIS HR templates: employee profiles, family/dependents, salary history, work history, qualifications, leave balances, organization structure, job positions.
+  - [x] 27.1 Create Alembic migration 003_add_misa_fields.py:
+    - Add 58 MISA-compatible columns to nhan_vien table (gioi_tinh, noi_sinh, CMND/CCCD, hộ chiếu, trình độ, ngân hàng, bảo hiểm, địa chỉ, thuế...)
+    - Create dl_gia_dinh table (family/dependents, 21 fields)
+    - Create dl_lich_su_luong table (salary history, 16 fields)
+    - Create dl_qua_trinh_cong_tac table (work history, 12 fields)
+    - Create dl_bang_cap table (qualifications, 11 fields)
+    - Create dl_nghi_phep table (leave balance, 7 numeric fields + unique constraint)
+    - Extend dm_don_vi with 11 MISA "Cơ cấu tổ chức" fields
+    - Extend dm_vi_tri with 5 MISA "Vị trí công việc" fields
+    - _Requirements: 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9_
+
+  - [x] 27.2 Create backend/app/models/misa_hr.py:
+    - DlGiaDinh model: family members/dependents with tax deduction fields
+    - DlLichSuLuong model: salary history with allowances and deductions
+    - DlQuaTrinhCongTac model: employee work/transfer history
+    - DlBangCap model: qualifications and degrees
+    - DlNghiPhep model: annual leave balance (unique per employee+year)
+    - _Requirements: 15.3, 15.4, 15.5, 15.6, 15.7_
+
+  - [x] 27.3 Update backend/app/models/nhan_vien.py:
+    - Add 58 MISA fields (gioi_tinh through so_ngay_phep)
+    - Add relationships: gia_dinh_list, lich_su_luong_list, qua_trinh_ct_list, bang_cap_list, nghi_phep_list
+    - _Requirements: 15.2_
+
+  - [x] 27.4 Update backend/app/models/danh_muc.py:
+    - Extend DmDonVi with MISA fields (ma_don_vi, thuoc_don_vi, cap_to_chuc, etc.)
+    - Extend DmViTri with MISA fields (ma_vi_tri, don_vi_cong_tac, nhom_vi_tri, etc.)
+    - _Requirements: 15.8, 15.9_
+
+  - [x] 27.5 Create backend/app/schemas/misa_hr.py:
+    - GiaDinhCreate/Response/ImportRow/ImportRequest
+    - LichSuLuongCreate/Response/ImportRow/ImportRequest
+    - QuaTrinhCTCreate/Response/ImportRow/ImportRequest
+    - BangCapCreate/Response/ImportRow/ImportRequest
+    - NghiPhepCreate/Response/ImportRow/ImportRequest
+    - DonViMisaImportRow/Request (cơ cấu tổ chức)
+    - ViTriMisaImportRow/Request (vị trí công việc)
+    - MisaImportResponse (generic: imported_count, total_rows, errors)
+    - _Requirements: 15.1, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9_
+
+  - [x] 27.6 Create backend/app/routers/misa_hr.py with import endpoints:
+    - POST /api/misa-hr/import/gia-dinh → import family/dependents
+    - POST /api/misa-hr/import/lich-su-luong → import salary history
+    - POST /api/misa-hr/import/qua-trinh-ct → import work history
+    - POST /api/misa-hr/import/bang-cap → import qualifications
+    - POST /api/misa-hr/import/nghi-phep → import leave balance (upsert)
+    - POST /api/misa-hr/import/co-cau-to-chuc → import org structure (upsert)
+    - POST /api/misa-hr/import/vi-tri-cong-viec → import job positions (upsert)
+    - GET /api/misa-hr/{nv_id}/gia-dinh → list family members
+    - GET /api/misa-hr/{nv_id}/lich-su-luong → list salary history
+    - Employee matching by ma_nv (case-insensitive)
+    - _Requirements: 15.1, 15.10, 15.11_
+
+  - [x] 27.7 Create frontend/src/pages/MisaImport.jsx:
+    - Dedicated "Import MISA" page with left-side tabs
+    - 9 tabs: Hồ sơ NV, Gia đình, Lịch sử lương, Quá trình CT, Bằng cấp, Nghỉ phép, Cơ cấu TC, Vị trí CV, Chấm công
+    - Each tab uses ImportExcel component for file upload
+    - Accessible to Admin, Accountant, HR roles
+    - _Requirements: 15.12_
+
+  - [x] 27.8 Update frontend routing and navigation:
+    - Add /misa-import route in App.jsx
+    - Add "Import MISA" menu item in Layout.jsx sidebar
+    - _Requirements: 15.12_
+
+  - [x] 27.9 Register misa_hr router in backend/app/main.py:
+    - Include router at /api/misa-hr prefix
+    - _Requirements: 15.1_
+
+  - [x] 27.10 Update backend/app/models/__init__.py:
+    - Import DlGiaDinh, DlLichSuLuong, DlQuaTrinhCongTac, DlBangCap, DlNghiPhep
+    - _Requirements: 15.3, 15.4, 15.5, 15.6, 15.7_
+
+- [ ] 28. Deploy to Render + Neon PostgreSQL
+  Production deployment with free-tier hosting.
+  - [x] 28.1 Create Dockerfile (multi-stage: Node build → Python runtime)
+  - [x] 28.2 Create render.yaml blueprint
+  - [x] 28.3 Create build.sh and start.sh scripts
+  - [x] 28.4 Update database.py for Neon SSL support
+  - [x] 28.5 Update frontend API base URL for production (relative /api)
+  - [x] 28.6 Create DEPLOY.md with step-by-step instructions
+  - [x] 28.7 Push to GitHub (thehoang196/nbk-salary)
+  - [x] 28.8 Deploy on Render with Neon PostgreSQL
+  - [ ] 28.9 Fix bcrypt/passlib compatibility issue for password hashing
+  - [ ] 28.10 Verify login and basic functionality on production
+
 ## Notes
 
 - Tasks marked with `*` are optional property-based tests and can be skipped for faster MVP
@@ -692,6 +780,9 @@ Full-stack salary management for THCS Nguyễn Bỉnh Khiêm. Tasks 1-5 are comp
 - External periods use a single consolidated table (dl_tiet_day_ngoai) for all types
 - Support allowances use dedicated table (dl_ho_tro_luong) summed into payslip Section II item 4
 - VP attendance is primarily imported from Misa Excel export with manual edit fallback
+- Task 27: MISA HR Import adds 5 new tables and extends nhan_vien with 58 fields for full MISA AMIS compatibility
+- Task 28: Deployment to Render (free tier) + Neon PostgreSQL (free tier, permanent)
+- Deployment uses multi-stage Docker build (Node 18 for frontend → Python 3.11 for backend)
 
 ## Task Dependency Graph
 
@@ -728,7 +819,13 @@ Full-stack salary management for THCS Nguyễn Bỉnh Khiêm. Tasks 1-5 are comp
     { "id": 27, "tasks": ["22.1", "22.2", "22.3"] },
     { "id": 28, "tasks": ["23.1", "23.2", "23.3", "23.4"] },
     { "id": 29, "tasks": ["24.1", "24.2", "24.3", "24.4"] },
-    { "id": 30, "tasks": ["25.1", "25.2"] }
+    { "id": 30, "tasks": ["25.1", "25.2"] },
+    { "id": 31, "tasks": ["27.1", "27.2"] },
+    { "id": 32, "tasks": ["27.3", "27.4", "27.5"] },
+    { "id": 33, "tasks": ["27.6", "27.7", "27.8", "27.9", "27.10"] },
+    { "id": 34, "tasks": ["28.1", "28.2", "28.3", "28.4", "28.5", "28.6"] },
+    { "id": 35, "tasks": ["28.7", "28.8"] },
+    { "id": 36, "tasks": ["28.9", "28.10"] }
   ]
 }
 ```
