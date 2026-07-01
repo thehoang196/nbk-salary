@@ -31,6 +31,16 @@ async def health_check():
     return {"status": "ok", "app": "NBK Salary API"}
 
 
+@app.on_event("startup")
+def on_startup():
+    """Run seed on app startup to ensure admin user exists."""
+    try:
+        from app.seed import run_seed
+        run_seed()
+    except Exception as e:
+        print(f"[WARN] Seed failed: {e}")
+
+
 @app.get("/api/debug/check-admin")
 def debug_check_admin():
     """Temporary debug endpoint - remove after fixing login."""
@@ -49,7 +59,6 @@ def debug_check_admin():
             "locked_until": str(user.locked_until) if user.locked_until else None,
             "failed_count": user.failed_login_count,
             "password_verify": pw_ok,
-            "hash_prefix": user.password_hash[:20] if user.password_hash else None,
         }
     finally:
         db.close()
