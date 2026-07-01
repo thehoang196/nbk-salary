@@ -4,7 +4,7 @@ import {
   Table, Button, Space, DatePicker, message, Modal, Tag, Typography, Card, Statistic, Row, Col,
 } from 'antd';
 import {
-  UploadOutlined, FileSearchOutlined,
+  UploadOutlined, DownloadOutlined, FileSearchOutlined,
   HistoryOutlined, BarChartOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -282,6 +282,7 @@ export default function ThoiKhoaBieu() {
 
   // Template download URL is no longer needed - import uses actual school TKB format
   const templateUrl = null;
+  const templateDownloadUrl = process.env.PUBLIC_URL + '/mau_tkb.xlsx';
 
   // Table columns
   const columns = [
@@ -383,6 +384,13 @@ export default function ThoiKhoaBieu() {
         </Col>
         <Col flex="auto" style={{ textAlign: 'right' }}>
           <Space>
+            <Button
+              icon={<DownloadOutlined />}
+              href={templateDownloadUrl}
+              target="_blank"
+            >
+              Tải mẫu TKB
+            </Button>
             <Button
               type="primary"
               icon={<UploadOutlined />}
