@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, InputNumber, Button, message } from 'antd';
+import React, { useState } from 'react';
+import { Tabs, InputNumber, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import CrudTable from '../../components/CrudTable';
@@ -160,65 +160,33 @@ const HeSoLuongTab = () => (
   />
 );
 
-const DonGiaDayTab = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await danhMucApi.getDonGiaDay();
-      setData(res.data || []);
-    } catch (e) {
-      message.error('Lỗi tải đơn giá dạy');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, []);
-
-  const handleImportConfirm = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await api.post('/don-gia-day/import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    fetchData();
-    return res.data;
-  };
-
-  return (
-    <div>
-      <CrudTable
-        title="Đơn giá dạy"
-        columns={[
-          { title: 'Giáo viên', dataIndex: 'nhan_vien_id' },
-          { title: 'Môn học', dataIndex: 'mon_hoc_id' },
-          { title: 'Khối', dataIndex: 'khoi_id' },
-          { title: 'Đơn giá', dataIndex: 'don_gia', render: (v) => `${(v || 0).toLocaleString()} đ` },
-          { title: 'Ngày bắt đầu', dataIndex: 'ngay_bat_dau' },
-          {
-            title: 'Trạng thái',
-            dataIndex: 'is_active',
-            render: (v) => (v ? 'Hoạt động' : 'Ngưng'),
-          },
-        ]}
-        fetchFn={() => danhMucApi.getDonGiaDay()}
-        createFn={(d) => danhMucApi.createDonGiaDay(d)}
-        updateFn={(id, d) => danhMucApi.updateDonGiaDay(id, d)}
-        deleteFn={(id) => danhMucApi.deleteDonGiaDay(id)}
-        formFields={[
-          { name: 'nhan_vien_id', label: 'Giáo viên (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-          { name: 'mon_hoc_id', label: 'Môn học (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-          { name: 'khoi_id', label: 'Khối (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-          { name: 'don_gia', label: 'Đơn giá (VND)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-        ]}
-      />
-    </div>
-  );
-};
+const DonGiaDayTab = () => (
+  <CrudTable
+    title="Đơn giá dạy"
+    columns={[
+      { title: 'Giáo viên (ID)', dataIndex: 'nhan_vien_id' },
+      { title: 'Môn học (ID)', dataIndex: 'mon_hoc_id' },
+      { title: 'Khối (ID)', dataIndex: 'khoi_id' },
+      { title: 'Đơn giá', dataIndex: 'don_gia', render: (v) => `${(v || 0).toLocaleString()} đ` },
+      { title: 'Ngày bắt đầu', dataIndex: 'ngay_bat_dau' },
+      {
+        title: 'Trạng thái',
+        dataIndex: 'is_active',
+        render: (v) => (v ? 'Hoạt động' : 'Ngưng'),
+      },
+    ]}
+    fetchFn={() => danhMucApi.getDonGiaDay()}
+    createFn={(d) => danhMucApi.createDonGiaDay(d)}
+    updateFn={(id, d) => danhMucApi.updateDonGiaDay(id, d)}
+    deleteFn={(id) => danhMucApi.deleteDonGiaDay(id)}
+    formFields={[
+      { name: 'nhan_vien_id', label: 'Giáo viên (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'mon_hoc_id', label: 'Môn học (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'khoi_id', label: 'Khối (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'don_gia', label: 'Đơn giá (VND)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+    ]}
+  />
+);
 
 export default function DanhMuc() {
   const [searchParams, setSearchParams] = useSearchParams();
