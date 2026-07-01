@@ -138,6 +138,8 @@ export default function Layout() {
   const openKeys = location.pathname.startsWith('/danh-muc') ? ['/danh-muc'] : [];
 
   const handleMenuClick = ({ key }) => {
+    // Skip navigation for parent items that have children (submenu toggle only)
+    if (key === '/danh-muc') return;
     // Handle menu items with query params (e.g., /danh-muc?tab=don-vi)
     if (key.includes('?')) {
       const [path, query] = key.split('?');
