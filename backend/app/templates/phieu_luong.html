@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phiếu lương - {{ muc_i.ho_ten }}</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; font-size: 12px; margin: 20px; }
+        h1 { text-align: center; font-size: 16px; }
+        h2 { font-size: 13px; margin-top: 15px; border-bottom: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+        td { padding: 3px 5px; }
+        .label { width: 60%; }
+        .amount { width: 40%; text-align: right; }
+        .total { font-weight: bold; border-top: 1px solid #333; }
+        .header-info td { border: none; padding: 2px 5px; }
+        .net-pay { font-size: 16px; font-weight: bold; text-align: center; padding: 10px; background: #f0f0f0; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>PHIẾU LƯƠNG THÁNG {{ thang }}/{{ nam }}</h1>
+    <p style="text-align: center;">Trường THCS Nguyễn Bỉnh Khiêm</p>
+    
+    <!-- Section I: Employee Info -->
+    <h2>I. THÔNG TIN NHÂN VIÊN</h2>
+    <table class="header-info">
+        <tr><td>Họ tên:</td><td><b>{{ muc_i.ho_ten }}</b></td>
+            <td>Mã NV:</td><td>{{ muc_i.ma_nv }}</td></tr>
+        {% if muc_i.ten_goi %}<tr><td>Tên gọi:</td><td>{{ muc_i.ten_goi }}</td><td></td><td></td></tr>{% endif %}
+        <tr><td>Lương khoán:</td><td>{{ "{:,.0f}".format(muc_i.luong_khoan) }} đ</td>
+            <td>Lương đóng BH:</td><td>{{ "{:,.0f}".format(muc_i.luong_dong_bh) }} đ</td></tr>
+        <tr><td>Ngày công:</td><td>{{ muc_i.ngay_cong }}/{{ muc_i.cong_chuan }}</td>
+            <td></td><td></td></tr>
+    </table>
+    
+    <!-- Section II: Total Income -->
+    <h2>II. TỔNG THU NHẬP</h2>
+    <table>
+        <tr><td class="label">1. Lương khoán theo ngày công</td><td class="amount">{{ "{:,.0f}".format(muc_ii.luong_khoan_prorated) }}</td></tr>
+        <tr><td class="label">2. Tiền giảng dạy</td><td class="amount">{{ "{:,.0f}".format(muc_ii.tien_giang_day) }}</td></tr>
+        <tr><td class="label">3. Ra đề / duyệt đề / chấm thi</td><td class="amount">{{ "{:,.0f}".format(muc_ii.tien_de_thi) }}</td></tr>
+        <tr><td class="label">4. Khoán chi hỗ trợ</td><td class="amount">{{ "{:,.0f}".format(muc_ii.ho_tro) }}</td></tr>
+        <tr><td class="label">5. Chi sinh nhật</td><td class="amount">{{ "{:,.0f}".format(muc_ii.sinh_nhat) }}</td></tr>
+        <tr><td class="label">6. Thưởng hiệu quả / làm thêm</td><td class="amount">{{ "{:,.0f}".format(muc_ii.lam_them_thuong) }}</td></tr>
+        <tr><td class="label">7. Thưởng sự kiện / tuyển sinh</td><td class="amount">{{ "{:,.0f}".format(muc_ii.thuong_su_kien) }}</td></tr>
+        <tr><td class="label">8. Bổ sung lương</td><td class="amount">{{ "{:,.0f}".format(muc_ii.bu_luong) }}</td></tr>
+        <tr><td class="label">9. Thưởng Tết</td><td class="amount">{{ "{:,.0f}".format(muc_ii.thuong_tet) }}</td></tr>
+        <tr class="total"><td class="label"><b>TỔNG THU NHẬP</b></td><td class="amount"><b>{{ "{:,.0f}".format(muc_ii.tong) }}</b></td></tr>
+    </table>
+    
+    <!-- Section III -->
+    <h2>III. ĐÃ NHẬN</h2>
+    <table>
+        <tr><td class="label">Các khoản đã nhận trước</td><td class="amount">{{ "{:,.0f}".format(muc_iii.da_nhan) }}</td></tr>
+    </table>
+    
+    <!-- Section IV: Deductions -->
+    <h2>IV. GIẢM TRỪ</h2>
+    <table>
+        <tr><td class="label">1. BH + Công đoàn</td><td class="amount">{{ "{:,.0f}".format(muc_iv.bh_cd) }}</td></tr>
+        <tr><td class="label">2. Đoàn phí</td><td class="amount">{{ "{:,.0f}".format(muc_iv.doan_phi) }}</td></tr>
+        <tr><td class="label">3. Tích lũy</td><td class="amount">{{ "{:,.0f}".format(muc_iv.tich_luy) }}</td></tr>
+        <tr><td class="label">4. Thuế TNCN</td><td class="amount">{{ "{:,.0f}".format(muc_iv.thue_tncn) }}</td></tr>
+        <tr><td class="label">5. Truy thu</td><td class="amount">{{ "{:,.0f}".format(muc_iv.truy_thu) }}</td></tr>
+        <tr class="total"><td class="label"><b>TỔNG GIẢM TRỪ</b></td><td class="amount"><b>{{ "{:,.0f}".format(muc_iv.tong) }}</b></td></tr>
+    </table>
+    
+    <!-- Section V -->
+    <h2>V. QUYẾT TOÁN THUẾ</h2>
+    <table>
+        <tr><td class="label">Điều chỉnh quyết toán</td><td class="amount">{{ "{:,.0f}".format(muc_v.quyet_toan) }}</td></tr>
+    </table>
+    
+    <!-- Section VI: Net Pay -->
+    <div class="net-pay">
+        VI. THỰC LĨNH: {{ "{:,.0f}".format(muc_vi_thuc_linh) }} VND
+    </div>
+    
+    <p style="margin-top: 20px; font-size: 10px; color: #666;">
+        Ngày tính: {{ ngay_tinh or "N/A" }} | Người tính: {{ nguoi_tinh or "N/A" }}
+    </p>
+</body>
+</html>

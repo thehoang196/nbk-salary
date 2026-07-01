@@ -1,0 +1,24 @@
+## Render Blueprint - NBK Salary App
+## Dùng với Neon PostgreSQL (free tier vĩnh viễn)
+
+services:
+  - type: web
+    name: nbk-salary
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: NODE_VERSION
+        value: "18"
