@@ -85,6 +85,10 @@ from fastapi.responses import FileResponse
 
 FRONTEND_BUILD = Path(__file__).resolve().parent.parent.parent / "frontend" / "build"
 
+# Also check Docker path (frontend build copied to /app/build)
+if not FRONTEND_BUILD.exists():
+    FRONTEND_BUILD = Path(__file__).resolve().parent.parent / "build"
+
 if FRONTEND_BUILD.exists():
     # Serve static assets (JS, CSS, images)
     app.mount("/static", StaticFiles(directory=str(FRONTEND_BUILD / "static")), name="frontend-static")
