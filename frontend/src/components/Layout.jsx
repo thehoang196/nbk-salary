@@ -40,7 +40,7 @@ function getMenuItems(role) {
       roles: ['admin', 'accountant', 'viewer'],
     },
     {
-      key: '/danh-muc',
+      key: 'submenu-giao-vien',
       icon: <AppstoreOutlined />,
       label: 'Giáo viên',
       roles: ['admin', 'accountant'],
@@ -135,11 +135,11 @@ export default function Layout() {
   // Determine selected key from pathname + search
   const currentKey = location.pathname + location.search;
   // For submenu open keys
-  const openKeys = location.pathname.startsWith('/danh-muc') ? ['/danh-muc'] : [];
+  const openKeys = location.pathname.startsWith('/danh-muc') ? ['submenu-giao-vien'] : [];
 
   const handleMenuClick = ({ key }) => {
-    // Skip navigation for parent items that have children (submenu toggle only)
-    if (key === '/danh-muc') return;
+    // Skip navigation for parent/submenu items
+    if (key === 'submenu-giao-vien') return;
     // Handle menu items with query params (e.g., /danh-muc?tab=don-vi)
     if (key.includes('?')) {
       const [path, query] = key.split('?');
