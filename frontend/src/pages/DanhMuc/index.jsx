@@ -167,7 +167,7 @@ const DonGiaDayTab = () => (
       { title: 'Giáo viên (ID)', dataIndex: 'nhan_vien_id' },
       { title: 'Môn học (ID)', dataIndex: 'mon_hoc_id' },
       { title: 'Khối (ID)', dataIndex: 'khoi_id' },
-      { title: 'Đơn giá', dataIndex: 'don_gia', render: (v) => `${(v || 0).toLocaleString()} đ` },
+      { title: 'Đơn giá', dataIndex: 'don_gia', render: (v) => v != null ? `${Number(v).toLocaleString()} đ` : '—' },
       { title: 'Ngày bắt đầu', dataIndex: 'ngay_bat_dau' },
       {
         title: 'Trạng thái',
@@ -180,10 +180,10 @@ const DonGiaDayTab = () => (
     updateFn={(id, d) => danhMucApi.updateDonGiaDay(id, d)}
     deleteFn={(id) => danhMucApi.deleteDonGiaDay(id)}
     formFields={[
-      { name: 'nhan_vien_id', label: 'Giáo viên (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-      { name: 'mon_hoc_id', label: 'Môn học (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-      { name: 'khoi_id', label: 'Khối (ID)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
-      { name: 'don_gia', label: 'Đơn giá (VND)', rules: [{ required: true }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'nhan_vien_id', label: 'Giáo viên (ID)', rules: [{ required: true, message: 'Bắt buộc' }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'mon_hoc_id', label: 'Môn học (ID)', rules: [{ required: true, message: 'Bắt buộc' }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'khoi_id', label: 'Khối (ID)', rules: [{ required: true, message: 'Bắt buộc' }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
+      { name: 'don_gia', label: 'Đơn giá (VND)', rules: [{ required: true, message: 'Bắt buộc' }], component: <InputNumber style={{ width: '100%' }} min={1} /> },
     ]}
   />
 );
@@ -258,7 +258,7 @@ export default function DanhMuc() {
           Import giáo viên từ Excel
         </Button>
       </div>
-      <Tabs items={items} activeKey={activeKey} onChange={handleTabChange} />
+      <Tabs items={items} activeKey={activeKey} onChange={handleTabChange} destroyInactiveTabPane />
       <ImportExcel
         title="Import danh sách giáo viên"
         open={importGVOpen}

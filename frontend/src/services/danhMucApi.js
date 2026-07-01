@@ -28,7 +28,7 @@ export const updateKiemNhiem = (id, data) => api.put(`/chuc-danh/kiem-nhiem/${id
 export const deleteKiemNhiem = (id) => api.delete(`/chuc-danh/kiem-nhiem/${id}`);
 
 // Đơn giá dạy
-export const getDonGiaDay = (params) => api.get('/don-gia-day', { params });
-export const createDonGiaDay = (data) => api.post('/don-gia-day', data);
+export const getDonGiaDay = (params) => api.get('/don-gia-day/', { params });
+export const createDonGiaDay = (data) => api.post('/don-gia-day/', data);
 export const updateDonGiaDay = (id, data) => api.put(`/don-gia-day/${id}`, data);
 export const deleteDonGiaDay = (id) => api.delete(`/don-gia-day/${id}`);
